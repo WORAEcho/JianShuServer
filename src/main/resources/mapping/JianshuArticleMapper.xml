@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sandman.dao.JianshuArticleMapper">
+  <resultMap id="BaseResultMap" type="com.sandman.pojo.JianshuArticle">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="collection_id" jdbcType="INTEGER" property="collectionId" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="published" jdbcType="INTEGER" property="published" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="published_time" jdbcType="TIMESTAMP" property="publishedTime" />
+    <result column="word_count" jdbcType="INTEGER" property="wordCount" />
+    <result column="cover_img" jdbcType="VARCHAR" property="coverImg" />
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.sandman.pojo.JianshuArticle">
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+    <result column="pure_content" jdbcType="LONGVARCHAR" property="pureContent" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, title, collection_id, status, create_time, published, update_time, published_time,word_count,cover_img
+  </sql>
+  <sql id="Blob_Column_List">
+    content
+  </sql>
+  <sql id="Pure_Blob_Column_List">
+    pure_content
+  </sql>
+  <select id="selectContentByPrimaryKey" parameterType="java.lang.Integer" resultMap="ResultMapWithBLOBs">
+    select
+    title,
+    <include refid="Blob_Column_List" />
+    from jianshu_article
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Blob_Column_List" />,
+    <include refid="Blob_Column_List" />
+    <include refid="Pure_Blob_Column_List" />
+    from jianshu_article
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectPublished" parameterType="java.lang.Integer" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />,
+    <include refid="Blob_Column_List" />,
+    <include refid="Pure_Blob_Column_List" />
+    from jianshu_article
+    where published IN (1,2)
+    <if test="list!=null and list.size>0">
+      AND collection_id IN
+      <foreach collection="list" item="item" open="("
+               separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+  </select>
+
+  <select id="selectArticleWithArticleProfileByFuzzyQuery" parameterType="java.lang.String" resultType="map">
+      SELECT a.id as userId,a.avatar_img,c.id as articleId,c.title,c.pure_content,c.update_time,d.nickname
+      FROM jianshu_user a,jianshu_collection b,jianshu_article c,jianshu_profile d
+      WHERE (c.pure_content LIKE #{fuzzyKey,jdbcType=VARCHAR} OR c.title LIKE  #{fuzzyKey,jdbcType=VARCHAR})
+      AND a.id in (SELECT user_id FROM jianshu_collection WHERE id in (SELECT collection_id FROM `jianshu_article` WHERE published IN (1,2)))
+      AND a.id = b.user_id AND b.id = c.collection_id AND c.published IN (1,2) AND a.id = d.user_id
+  </select>
+
+  <select id="selectAllPublishedArticleWithArticleProfile" parameterType="java.lang.Integer" resultType="map">
+      SELECT a.id as userId,c.id as articleId,c.title,c.pure_content,c.update_time,c.cover_img,d.nickname
+      FROM jianshu_user a,jianshu_collection b,jianshu_article c,jianshu_profile d
+      WHERE a.id in (SELECT user_id FROM jianshu_collection WHERE id in (SELECT collection_id FROM `jianshu_article` WHERE published =2))
+      AND a.id = b.user_id AND b.id = c.collection_id AND c.published = 2 AND a.id = d.user_id
+  </select>
+
+  <select id="selectPublishedArticleWithArticleProfile" parameterType="java.lang.Integer" resultType="map">
+    SELECT a.id as userId,a.avatar_img,b.id as collectionId,b.collection_name,c.id as articleId,c.title,c.content,c.update_time,c.word_count,d.nickname,d.gender
+    from jianshu_user a,jianshu_collection b,jianshu_article c,jianshu_profile d
+    WHERE a.id = (SELECT user_id FROM jianshu_collection WHERE id = (SELECT collection_id FROM `jianshu_article` WHERE published IN (1,2) AND id = #{articleId,jdbcType=INTEGER} ))
+    AND a.id = b.user_id AND b.id = c.collection_id AND c.published IN (1,2) AND c.id = #{articleId,jdbcType=INTEGER} AND a.id = d.user_id
+  </select>
+
+  <select id="selectTotalWordCountByUserIdList" parameterType="java.lang.Integer" resultType="map">
+    select b.user_id as userId,sum(a.word_count) as wordCount
+    from jianshu_article a ,jianshu_collection b
+    where b.id = a.collection_id
+    AND a.collection_id in (SELECT id from jianshu_collection
+    <if test="list!=null and list.size>0">
+      where user_id in
+      <foreach collection="list" item="item" open="("
+               separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    )
+    AND published IN (1,2)
+    GROUP BY user_id
+  </select>
+
+  <select id="selectAllPublishedArticleWithArticleProfileByUserId" parameterType="java.lang.Integer" resultType="map">
+  select a.id,a.title,a.pure_content,a.update_time,IFNULL(sum(b.like_state),0) as likeNum
+  from jianshu_article a left join jianshu_article_like b on a.id = b.article_id
+   where a.published IN (1,2)
+   AND a.collection_id in (select id from jianshu_collection where user_id = #{userId,jdbcType=INTEGER})
+   GROUP BY a.id
+   ORDER BY update_time DESC
+  </select>
+
+
+  <select id="selectPublishedId" parameterType="java.lang.Integer" resultType="Integer">
+    select
+      id
+    from jianshu_article
+    where published IN (1,2)
+    <if test="list!=null and list.size>0">
+      AND collection_id IN
+      <foreach collection="list" item="item" open="("
+               separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+  </select>
+
+  <select id="selectAllPublishedArticle" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_article
+    where collection_id in (select id from jianshu_collection where user_id = #{userId,jdbcType=INTEGER})
+    AND published IN (1,2)
+  </select>
+
+  <select id="selectAllPublishedArticleId" parameterType="java.lang.Integer" resultType="Integer">
+    select
+    id
+    from jianshu_article
+    where collection_id in (select id from jianshu_collection where user_id = #{userId,jdbcType=INTEGER})
+    AND published IN (1,2)
+  </select>
+
+
+  <select id="selectByCollectionId" parameterType="java.lang.Integer" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_article
+    where collection_id = #{collectionId,jdbcType=INTEGER}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from jianshu_article
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.sandman.pojo.JianshuArticle">
+    insert into jianshu_article (id, title, collection_id, 
+      status, create_time, published,
+      content, update_time, published_time, pure_content,word_count,cover_img)
+    values (#{id,jdbcType=INTEGER}, #{title,jdbcType=VARCHAR}, #{collectionId,jdbcType=INTEGER}, 
+      #{status,jdbcType=INTEGER}, #{createTime,jdbcType=TIMESTAMP}, #{published,jdbcType=INTEGER},
+      #{content,jdbcType=LONGVARCHAR}, #{updateTime,jdbcType=TIMESTAMP}, #{publishedTime,jdbcType=TIMESTAMP},
+      #{pureContent,jdbcType=LONGVARCHAR},#{wordCount,jdbcType=INTEGER},#{coverImg,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.sandman.pojo.JianshuArticle">
+    insert into jianshu_article
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="title != null">
+        title,
+      </if>
+      <if test="collectionId != null">
+        collection_id,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="published != null">
+        published,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+      <if test="updateTime != null">
+        update_time,
+      </if>
+      <if test="publishedTime != null">
+        published_time,
+      </if>
+      <if test="pureContent != null">
+        pure_content,
+      </if>
+      <if test="wordCount != null">
+        word_count,
+      </if>
+      <if test="coverImg != null">
+        cover_img,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="collectionId != null">
+        #{collectionId,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="published != null">
+        #{published,jdbcType=INTEGER},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="publishedTime != null">
+        #{publishedTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="pureContent != null">
+        #{pureContent,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="wordCount != null">
+        #{wordCount,jdbcType=INTEGER},
+      </if>
+      <if test="coverImg != null">
+        #{cover_img,jdbcType=VARCHAR},
+      </if>
+
+    </trim>
+  </insert>
+
+  <update id="publishArticle" parameterType="java.lang.Integer">
+    update jianshu_article
+    set published = 1, published_time = NOW()
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+
+  <update id="disPublishArticle" parameterType="java.lang.Integer">
+    update jianshu_article
+    set published = 0
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.sandman.pojo.JianshuArticle">
+    update jianshu_article
+    <set>
+      <if test="title != null">
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="collectionId != null">
+        collection_id = #{collectionId,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="published != null">
+        published = #{published,jdbcType=INTEGER},
+      </if>
+      <if test="content != null">
+        content = #{content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="publishedTime != null">
+        published_time = #{publishedTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="pureContent != null">
+        pure_content = #{pureContent,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="wordCount != null">
+        word_count = #{wordCount,jdbcType=INTEGER},
+      </if>
+      <if test="coverImg != null">
+        cover_img = #{coverImg,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.sandman.pojo.JianshuArticle">
+    update jianshu_article
+    set title = #{title,jdbcType=VARCHAR},
+      collection_id = #{collectionId,jdbcType=INTEGER},
+      status = #{status,jdbcType=INTEGER},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      published = #{published,jdbcType=INTEGER},
+      content = #{content,jdbcType=LONGVARCHAR},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      published_time = #{publishedTime,jdbcType=TIMESTAMP},
+      pure_content = #{pureContent,jdbcType=LONGVARCHAR},
+      word_count = #{wordCount,jdbcType=INTEGER},
+      cover_img = #{coverImg,jdbcType=VARCHAR},
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.sandman.pojo.JianshuArticle">
+    update jianshu_article
+    set title = #{title,jdbcType=VARCHAR},
+      collection_id = #{collectionId,jdbcType=INTEGER},
+      status = #{status,jdbcType=INTEGER},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      published = #{published,jdbcType=INTEGER},
+      pdate_time = #{updateTime,jdbcType=TIMESTAMP},
+      published_time = #{publishedTime,jdbcType=TIMESTAMP},
+      pure_content = #{pureContent,jdbcType=LONGVARCHAR},
+      word_count = #{wordCount,jdbcType=INTEGER},
+      cover_img = #{coverImg,jdbcType=INTEGER}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

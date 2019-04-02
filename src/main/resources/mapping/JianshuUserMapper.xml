@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sandman.dao.JianshuUserMapper">
+  <resultMap id="BaseResultMap" type="com.sandman.pojo.JianshuUser">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="username" jdbcType="VARCHAR" property="username" />
+    <result column="password" jdbcType="VARCHAR" property="password" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="role" jdbcType="VARCHAR" property="role" />
+    <result column="register_time" jdbcType="TIMESTAMP" property="registerTime" />
+    <result column="avatar_img" jdbcType="VARCHAR" property="avatarImg" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, username, password, status, role, register_time, avatar_img
+  </sql>
+
+  <select id="selectSurveyByIdList" parameterType="java.lang.String" resultType="map">
+    select a.id,f.nickname,f.avatar_img,count(b.follow_user_id) as followNum,ifnull(e.followedNum,0) as followedNum,ifnull(c.likeNum,0) as likeNum,ifnull(d.articleNum,0) as articleNum,ifnull(d.wordNum,0) as wordNum
+    from jianshu_user a
+    left join jianshu_follow b
+    on a.id = b.user_id
+    left join (select sum(1) as likeNum,c.user_id from jianshu_article_like a ,jianshu_article b,jianshu_collection c where article_id in ( select id from jianshu_article where collection_id in (select id from jianshu_collection where published IN (1,2) )) AND a.article_id=b.id AND b.collection_id = c.id GROUP BY c.user_id) c
+    on a.id=c.user_id
+    left join (select sum(a.word_count) as wordNum,count(1) as articleNum,b.user_id from jianshu_article a ,jianshu_collection b where b.id = a.collection_id AND a.collection_id in (SELECT id from jianshu_collection) AND published IN (1,2) GROUP BY user_id) d
+    on a.id =d.user_id
+    left join (select follow_user_id as user_id,count(1) as followedNum from jianshu_follow GROUP BY follow_user_id) e
+    on a.id = e.user_id
+    left join jianshu_profile f
+    on a.id = f.user_id
+    where f.nickname like #{fuzzyKey,jdbcType=VARCHAR}
+    group by a.id
+  </select>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from jianshu_user
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <select id="selectByUsername" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_user
+    where username = #{username,jdbcType=VARCHAR}
+  </select>
+  <select id="selectUsersByRole" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_user
+    where role = #{role,jdbcType=VARCHAR}
+  </select>
+  <select id="selectUnfollowedWriters" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_user
+    where
+    role = "writer"
+    <if test="list!=null and list.size>0">
+      AND id NOT IN
+      <foreach collection="list" item="id" open="("
+               separator="," close=")">
+        #{id}
+      </foreach>
+    </if>
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from jianshu_user
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.sandman.pojo.JianshuUser">
+    insert into jianshu_user (id, username, password, 
+      status, role, register_time, 
+      avatar_img)
+    values (#{id,jdbcType=INTEGER}, #{username,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, 
+      #{status,jdbcType=INTEGER}, #{role,jdbcType=VARCHAR}, #{registerTime,jdbcType=TIMESTAMP}, 
+      #{avatarImg,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.sandman.pojo.JianshuUser">
+    insert into jianshu_user
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="username != null">
+        username,
+      </if>
+      <if test="password != null">
+        password,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="role != null">
+        role,
+      </if>
+      <if test="registerTime != null">
+        register_time,
+      </if>
+      <if test="avatarImg != null">
+        avatar_img,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="username != null">
+        #{username,jdbcType=VARCHAR},
+      </if>
+      <if test="password != null">
+        #{password,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="role != null">
+        #{role,jdbcType=VARCHAR},
+      </if>
+      <if test="registerTime != null">
+        #{registerTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="avatarImg != null">
+        #{avatarImg,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.sandman.pojo.JianshuUser">
+    update jianshu_user
+    <set>
+      <if test="username != null">
+        username = #{username,jdbcType=VARCHAR},
+      </if>
+      <if test="password != null">
+        password = #{password,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null">
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="role != null">
+        role = #{role,jdbcType=VARCHAR},
+      </if>
+      <if test="registerTime != null">
+        register_time = #{registerTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="avatarImg != null">
+        avatar_img = #{avatarImg,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.sandman.pojo.JianshuUser">
+    update jianshu_user
+    set username = #{username,jdbcType=VARCHAR},
+      password = #{password,jdbcType=VARCHAR},
+      status = #{status,jdbcType=INTEGER},
+      role = #{role,jdbcType=VARCHAR},
+      register_time = #{registerTime,jdbcType=TIMESTAMP},
+      avatar_img = #{avatarImg,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.sandman.pojo.JianshuUser">
+    update jianshu_user
+    set username = #{username,jdbcType=VARCHAR},
+      password = #{password,jdbcType=VARCHAR},
+      status = #{status,jdbcType=INTEGER},
+      role = #{role,jdbcType=VARCHAR},
+      register_time = #{registerTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

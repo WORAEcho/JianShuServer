@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sandman.dao.JianshuCollectionMapper">
+  <resultMap id="BaseResultMap" type="com.sandman.pojo.JianshuCollection">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="collection_name" jdbcType="VARCHAR" property="collectionName" />
+    <result column="user_id" jdbcType="INTEGER" property="userId" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, collection_name, user_id, status, create_time
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from jianshu_collection
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectByUserId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_collection
+    where user_id = #{userId,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectCollectionIdByUserId" parameterType="java.lang.Integer" resultType="Integer">
+    select
+    id
+    from jianshu_collection
+    where user_id = #{userId,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectByCollectionIdList" parameterType="java.lang.Integer" resultType="Integer">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_collection
+    where
+    <if test="list!=null and list.size>0">
+       id IN
+      <foreach collection="list" item="id" open="("
+               separator="," close=")">
+        #{id}
+      </foreach>
+    </if>
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from jianshu_collection
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.sandman.pojo.JianshuCollection">
+    insert into jianshu_collection (id, collection_name, user_id, 
+      status, create_time)
+    values (#{id,jdbcType=INTEGER}, #{collectionName,jdbcType=VARCHAR}, #{userId,jdbcType=INTEGER}, 
+      #{status,jdbcType=INTEGER}, #{createTime,jdbcType=TIMESTAMP})
+  </insert>
+  <insert id="insertSelective" parameterType="com.sandman.pojo.JianshuCollection">
+    insert into jianshu_collection
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="collectionName != null">
+        collection_name,
+      </if>
+      <if test="userId != null">
+        user_id,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="collectionName != null">
+        #{collectionName,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null">
+        #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.sandman.pojo.JianshuCollection">
+    update jianshu_collection
+    <set>
+      <if test="collectionName != null">
+        collection_name = #{collectionName,jdbcType=VARCHAR},
+      </if>
+      <if test="userId != null">
+        user_id = #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.sandman.pojo.JianshuCollection">
+    update jianshu_collection
+    set collection_name = #{collectionName,jdbcType=VARCHAR},
+      user_id = #{userId,jdbcType=INTEGER},
+      status = #{status,jdbcType=INTEGER},
+      create_time = #{createTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

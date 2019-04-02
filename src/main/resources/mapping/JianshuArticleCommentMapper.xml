@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sandman.dao.JianshuArticleCommentMapper">
+  <resultMap id="BaseResultMap" type="com.sandman.pojo.JianshuArticleComment">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="parent_id" jdbcType="INTEGER" property="parentId" />
+    <result column="article_id" jdbcType="INTEGER" property="articleId" />
+    <result column="user_id" jdbcType="INTEGER" property="userId" />
+    <result column="like_count" jdbcType="INTEGER" property="likeCount" />
+    <result column="status" jdbcType="INTEGER" property="status" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="content" jdbcType="VARCHAR" property="content" />
+    <result column="main_comment" jdbcType="INTEGER" property="mainComment" />
+    <result column="quoted_user_id" jdbcType="INTEGER" property="quotedUserId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, parent_id, article_id, user_id, like_count, status, create_time, content, main_comment, 
+    quoted_user_id
+  </sql>
+
+  <!-- 查找某篇文章下的所有评论id(为递归求reply总量做准备）-->
+  <select id="selectAllCommentByArticleId" parameterType="java.lang.Integer" resultType="map">
+    SELECT id,parent_id
+    FROM jianshu_article_comment
+    WHERE article_id = #{0} AND status = 1
+  </select>
+
+  <!--查找主评论-->
+  <select id="selectCommentWithUser" parameterType="java.lang.Integer" resultType="map">
+    select a.id,a.content,a.create_time,a.like_count,a.quoted_user_id,b.user_id,b.avatar_img,b.nickname
+    from jianshu_article_comment a,jianshu_profile b
+    where article_id = #{articleId,jdbcType=INTEGER} AND status = 1 AND parent_id = 0 AND a.user_id = b.user_id
+    ORDER BY create_time
+  </select>
+
+  <!--查找某一评论下的回复-->
+  <select id="selectReplyWithUser" parameterType="java.lang.Integer" resultType="map">
+    SELECT
+        c.id,
+        c.content,
+        c.create_time,
+        c.like_count,
+        c.quoted_user_id,
+        c.user_id,
+        c.avatar_img,
+        c.nickname,
+        d.nickname AS quoted_user_nickname
+    FROM
+        (
+        SELECT
+            a.id,
+            a.content,
+            a.create_time,
+            a.like_count,
+            a.quoted_user_id,
+            a.user_id,
+            b.avatar_img,
+            b.nickname
+        FROM
+            jianshu_article_comment a,
+            jianshu_profile b
+        WHERE
+            a.article_id = #{0,jdbcType=INTEGER}
+            AND a.id IN
+              <foreach collection="replyIdSet" item="item" open="(" close=")" separator=",">
+                #{item}
+              </foreach>
+            AND a.user_id = b.user_id
+        ) c
+        LEFT JOIN jianshu_profile d ON c.user_id = d.user_id
+        ORDER BY c.create_time
+  </select>
+
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from jianshu_article_comment
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from jianshu_article_comment
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.sandman.pojo.JianshuArticleComment">
+    insert into jianshu_article_comment (id, parent_id, article_id, 
+      user_id, like_count, status, 
+      create_time, content, main_comment, 
+      quoted_user_id)
+    values (#{id,jdbcType=INTEGER}, #{parentId,jdbcType=INTEGER}, #{articleId,jdbcType=INTEGER}, 
+      #{userId,jdbcType=INTEGER}, #{likeCount,jdbcType=INTEGER}, #{status,jdbcType=INTEGER}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{content,jdbcType=VARCHAR}, #{mainComment,jdbcType=INTEGER}, 
+      #{quotedUserId,jdbcType=INTEGER})
+  </insert>
+  <insert id="insertSelective" parameterType="com.sandman.pojo.JianshuArticleComment">
+    insert into jianshu_article_comment
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="parentId != null">
+        parent_id,
+      </if>
+      <if test="articleId != null">
+        article_id,
+      </if>
+      <if test="userId != null">
+        user_id,
+      </if>
+      <if test="likeCount != null">
+        like_count,
+      </if>
+      <if test="status != null">
+        status,
+      </if>
+      <if test="createTime != null">
+        create_time,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+      <if test="mainComment != null">
+        main_comment,
+      </if>
+      <if test="quotedUserId != null">
+        quoted_user_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="parentId != null">
+        #{parentId,jdbcType=INTEGER},
+      </if>
+      <if test="articleId != null">
+        #{articleId,jdbcType=INTEGER},
+      </if>
+      <if test="userId != null">
+        #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="likeCount != null">
+        #{likeCount,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=VARCHAR},
+      </if>
+      <if test="mainComment != null">
+        #{mainComment,jdbcType=INTEGER},
+      </if>
+      <if test="quotedUserId != null">
+        #{quotedUserId,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.sandman.pojo.JianshuArticleComment">
+    update jianshu_article_comment
+    <set>
+      <if test="parentId != null">
+        parent_id = #{parentId,jdbcType=INTEGER},
+      </if>
+      <if test="articleId != null">
+        article_id = #{articleId,jdbcType=INTEGER},
+      </if>
+      <if test="userId != null">
+        user_id = #{userId,jdbcType=INTEGER},
+      </if>
+      <if test="likeCount != null">
+        like_count = #{likeCount,jdbcType=INTEGER},
+      </if>
+      <if test="status != null">
+        status = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="createTime != null">
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="content != null">
+        content = #{content,jdbcType=VARCHAR},
+      </if>
+      <if test="mainComment != null">
+        main_comment = #{mainComment,jdbcType=INTEGER},
+      </if>
+      <if test="quotedUserId != null">
+        quoted_user_id = #{quotedUserId,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.sandman.pojo.JianshuArticleComment">
+    update jianshu_article_comment
+    set parent_id = #{parentId,jdbcType=INTEGER},
+      article_id = #{articleId,jdbcType=INTEGER},
+      user_id = #{userId,jdbcType=INTEGER},
+      like_count = #{likeCount,jdbcType=INTEGER},
+      status = #{status,jdbcType=INTEGER},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      content = #{content,jdbcType=VARCHAR},
+      main_comment = #{mainComment,jdbcType=INTEGER},
+      quoted_user_id = #{quotedUserId,jdbcType=INTEGER}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

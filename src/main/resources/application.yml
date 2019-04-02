@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/jianshu?useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 511946225
+    type: com.alibaba.druid.pool.DruidDataSource
+  jackson:
+    serialization:
+      INDENT_OUTPUT: true
+    date-format: yyyy-MM-dd HH:mm:ss
+    joda-date-time-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+    time-zone: GMT+8
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    password: 511946
+
+mybatis:
+  type-aliases-package: com.sandman.pojo
+  mapper-locations: classpath:mapping/*.xml
+#  default-executor-type: simple
+#  用于显示SQL语句
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+swagger:
+  host: localhost:8080
+
+jwt:
+  #  header: Authorization
+  token:
+    secret: mySecret
+    #    7天
+    #    expiration: 604800
+
+    #    一天
+    expiration: 86400

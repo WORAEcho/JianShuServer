@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sandman.dao.JianshuArticleLikeMapper">
+  <resultMap id="BaseResultMap" type="com.sandman.pojo.JianshuArticleLike">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="article_id" jdbcType="INTEGER" property="articleId" />
+    <result column="like_state" jdbcType="VARCHAR" property="likeState" />
+    <result column="like_time" jdbcType="TIMESTAMP" property="likeTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="user_id" jdbcType="INTEGER" property="userId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, article_id, like_state, like_time, update_time, user_id
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from jianshu_article_like
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <select id="selectByArticleId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from jianshu_article_like
+    where article_id = #{articleId,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectTotalLikeByArticleIdList" parameterType="java.lang.Integer" resultType="Integer">
+    select
+    sum(1)
+    from jianshu_article_like
+    where
+    <if test="list!=null and list.size>0">
+      article_id IN
+      <foreach collection="list" item="item" open="("
+               separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+  </select>
+
+  <select id="selectEachLikeByArticleIdList" parameterType="java.lang.Integer" resultType="map">
+    select article_id,sum(like_state) as likeNum
+    from jianshu_article_like
+    <if test="list!=null and list.size>0">
+      where article_id IN
+      <foreach collection="list" item="item" open="("
+               separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+    GROUP BY article_id
+  </select>
+
+
+  <select id="selectLikeAndCommentTotalByRecommendArticles" parameterType="java.lang.Integer" resultType="map">
+    SELECT a.id,IFNULL(sum(b.like_state),0) AS likeNum,IFNULL(c.commentTotal,0) AS commentTotal
+    FROM jianshu_article a
+    LEFT JOIN jianshu_article_like b
+    ON a.id = b.article_id
+    LEFT JOIN (SELECT a.id,IFNULL(sum(1),0) AS commentTotal FROM jianshu_article a ,jianshu_article_comment b WHERE published = 2 AND a.id = b.article_id GROUP BY a.id) c
+    ON a.id = c.id
+    WHERE a.published = 2
+    GROUP BY a.id
+  </select>
+
+  <select id="selectTotalLikeByUserIdList" parameterType="java.lang.Integer" resultType="map">
+    select c.user_id as userId,sum(1) as totalLike
+    from jianshu_article_like a ,jianshu_article b,jianshu_collection c
+    where article_id in ( select id from jianshu_article where collection_id in (select id from jianshu_collection where
+    <if test="list!=null and list.size>0">
+       user_id IN
+      <foreach collection="list" item="item" open="("
+               separator="," close=")">
+        #{item}
+      </foreach>
+      AND
+    </if>
+    published IN (1,2) )) AND a.article_id=b.id AND b.collection_id = c.id GROUP BY c.user_id
+  </select>
+
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from jianshu_article_like
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByUserIdAndArticleId" parameterType="java.lang.Integer">
+    delete from jianshu_article_like
+    where article_id = #{0,jdbcType=INTEGER}
+    AND user_id = #{1,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.sandman.pojo.JianshuArticleLike">
+    insert into jianshu_article_like (id, article_id, like_state, 
+      like_time, update_time, user_id
+      )
+    values (#{id,jdbcType=INTEGER}, #{articleId,jdbcType=INTEGER}, #{likeState,jdbcType=VARCHAR}, 
+      #{likeTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}, #{userId,jdbcType=INTEGER}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.sandman.pojo.JianshuArticleLike">
+    insert into jianshu_article_like
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="articleId != null">
+        article_id,
+      </if>
+      <if test="likeState != null">
+        like_state,
+      </if>
+      <if test="likeTime != null">
+        like_time,
+      </if>
+      <if test="updateTime != null">
+        update_time,
+      </if>
+      <if test="userId != null">
+        user_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="articleId != null">
+        #{articleId,jdbcType=INTEGER},
+      </if>
+      <if test="likeState != null">
+        #{likeState,jdbcType=VARCHAR},
+      </if>
+      <if test="likeTime != null">
+        #{likeTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="userId != null">
+        #{userId,jdbcType=INTEGER},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.sandman.pojo.JianshuArticleLike">
+    update jianshu_article_like
+    <set>
+      <if test="articleId != null">
+        article_id = #{articleId,jdbcType=INTEGER},
+      </if>
+      <if test="likeState != null">
+        like_state = #{likeState,jdbcType=VARCHAR},
+      </if>
+      <if test="likeTime != null">
+        like_time = #{likeTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="userId != null">
+        user_id = #{userId,jdbcType=INTEGER},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.sandman.pojo.JianshuArticleLike">
+    update jianshu_article_like
+    set article_id = #{articleId,jdbcType=INTEGER},
+      like_state = #{likeState,jdbcType=VARCHAR},
+      like_time = #{likeTime,jdbcType=TIMESTAMP},
+      update_time = #{updateTime,jdbcType=TIMESTAMP},
+      user_id = #{userId,jdbcType=INTEGER}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
